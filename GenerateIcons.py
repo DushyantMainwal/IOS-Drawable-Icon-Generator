@@ -3,22 +3,57 @@ import sys
 import os
 import imghdr
 import shutil
+import json
 
 
 def resize_image(input_image_path, file_name):
     image = Image.open(input_image_path)
-    for icon_ratio, icon_relative_location in zip(icon_size_ratio, icon_size_location):
+    count = 3
+	
+    for icon_ratio in icon_size_ratio:
         height = width = int(highest_resolution * (icon_ratio / icon_size_ratio[0]))
         resized_image = image.resize((height, width), Image.LANCZOS)
-        resized_icon_directory = destination_directory + os.sep + icon_relative_location
-        if destination_subdirectories.__len__() == 0:
-        	resized_icon_location = resized_icon_directory + os.sep + file_name
+        filename = file_name.split('.', 1)[0]
+        extension = file_name.split('.', 1)[1]
+		
+        resized_icon_directory = destination_directory + os.sep + filename + '.imageset'
+        image_name = ""
+		
+        if count == 1:
+            image_name = file_name;		
         else:
-        	resized_icon_location = resized_icon_directory + os.sep + \
-        	 "_".join(destination_subdirectories) + "_" + file_name
+            image_name = filename + "_" + str(count) + "x." + extension
+		
+        path = resized_icon_directory + os.sep
+        resized_icon_location = path + image_name
+		
         if not os.path.isdir(resized_icon_directory):
             os.makedirs(resized_icon_directory)
         resized_image.save(resized_icon_location, quality=90)
+        create_json(path, image_name, str(count))
+        count -= 1
+
+#Create JSON
+jsonFileName = 'Contents.json'
+data = {}
+info = {
+	'author': 'DigitalBitHub',
+	'version': 1
+}
+data['images'] = []
+data['info'] = {}
+
+def create_json(path, image_name, scale):
+    data['images'].append({
+	    'filename': image_name,
+		'idiom': 'universal',
+		'scale': scale + 'x'
+	})
+    data['info'] = info
+	
+    jsonPath = path + jsonFileName
+    with open(jsonPath, 'w') as outfile:  
+	    json.dump(data, outfile)
 
 
 def read_directory(input_location):
@@ -40,14 +75,11 @@ def read_directory(input_location):
 
 # get directory location
 location = sys.argv[1]
-icon_size_ratio = [4, 3, 2, 1.5, 1, 0.75]
-icon_size_location = ['drawable-xxxhdpi', 'drawable-xxhdpi',
-                      'drawable-xhdpi', 'drawable-hdpi', 'drawable-mdpi',
-                      'drawable-ldpi']
-highest_resolution = 192
+icon_size_ratio = [3, 2, 1]
+highest_resolution = 72
 if location.endswith(os.sep):
     location = location[0:location.__len__() - 1]
-destination_directory = location + os.sep + "resized_images"
+destination_directory = location + os.sep + "ios_images"
 destination_subdirectories = []
 
 # check if resolution is specified first argument is default and value is file name
